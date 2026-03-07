@@ -16,7 +16,7 @@ const ANSWER_WORDS = [
   "teams","clash","blitz","rally","punts","kicks","downs","drive",
   "sneak","spike","draft","guard","backs","sweep","tight","sacks",
   "flags","yards","first","stuff","strip","extra","press","bombs",
-  "flick","pitch","games","match","start","clock","final","halfs",
+  "flick","pitch","games","match","start","clock","final","tempo",
   // === BASKETBALL, BASEBALL & OTHER SPORTS ===
   "dunks","shots","hoops","court","fouls","steal","drank","bench",
   "swing","baton","relay","track","vault","lanes","rugby","serve",

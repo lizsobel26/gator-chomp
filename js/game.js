@@ -9,7 +9,12 @@ let currentRow = 0;
 let currentTile = 0;
 let gameOver = false;
 let hardMode = false;
+let isRevealing = false; // Lock input during tile reveal
 let revealedHints = []; // For hard mode: [{letter, status, position}]
+
+// Audio context (lazy init on first interaction)
+let audioCtx = null;
+let audioEnabled = true;
 
 // Stats
 let stats = loadStats();
@@ -24,8 +29,18 @@ function init() {
   loadHardMode();
   updateStatsDisplay();
 
+  // Show rules on first visit
+  if (!localStorage.getItem('gatorChomp_visited')) {
+    document.getElementById('help-modal').classList.remove('hidden');
+    localStorage.setItem('gatorChomp_visited', 'true');
+  }
+
   // Physical keyboard
   document.addEventListener('keydown', handleKeyPress);
+
+  // Init audio on first user interaction
+  document.addEventListener('click', initAudio, { once: true });
+  document.addEventListener('keydown', initAudio, { once: true });
 }
 
 function createBoard() {
@@ -54,7 +69,7 @@ function pickNewWord() {
 // ===== INPUT HANDLING =====
 
 function handleKeyPress(e) {
-  if (gameOver) return;
+  if (gameOver || isRevealing) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
 
   const key = e.key;
@@ -68,15 +83,16 @@ function handleKeyPress(e) {
 }
 
 function addLetter(letter) {
-  if (currentTile >= WORD_LENGTH) return;
+  if (currentTile >= WORD_LENGTH || isRevealing) return;
   const tile = document.getElementById(`tile-${currentRow}-${currentTile}`);
   tile.textContent = letter;
   tile.classList.add('filled');
+  playSound('type');
   currentTile++;
 }
 
 function deleteLetter() {
-  if (currentTile <= 0) return;
+  if (currentTile <= 0 || isRevealing) return;
   currentTile--;
   const tile = document.getElementById(`tile-${currentRow}-${currentTile}`);
   tile.textContent = '';
@@ -84,6 +100,7 @@ function deleteLetter() {
 }
 
 function submitGuess() {
+  if (isRevealing) return;
   if (currentTile < WORD_LENGTH) {
     shakeRow(currentRow);
     showToast('Not enough letters');
@@ -119,8 +136,12 @@ function submitGuess() {
     }
   });
 
+  // Lock input during reveal
+  isRevealing = true;
+
   // Animate tiles
   revealTiles(currentRow, result, () => {
+    isRevealing = false;
     // Update keyboard colors
     updateKeyboard(result);
 
@@ -133,6 +154,7 @@ function submitGuess() {
       setTimeout(() => {
         playChompAnimation();
         launchConfetti();
+        playSound('win');
       }, 400);
       setTimeout(() => {
         recordWin(currentRow + 1);
@@ -244,6 +266,7 @@ function revealTiles(row, result, callback) {
   tiles.forEach((tile, i) => {
     setTimeout(() => {
       tile.classList.add('flip');
+      playSound('flip', i);
 
       setTimeout(() => {
         tile.classList.add(result[i].status);
@@ -259,6 +282,7 @@ function revealTiles(row, result, callback) {
 function shakeRow(row) {
   const rowEl = document.getElementById(`row-${row}`);
   rowEl.classList.add('shake');
+  playSound('error');
   setTimeout(() => rowEl.classList.remove('shake'), 500);
 }
 
@@ -276,6 +300,9 @@ function showToast(msg, duration = 1500) {
   const toast = document.createElement('div');
   toast.classList.add('toast');
   toast.textContent = msg;
+  // Set fade-out timing via CSS custom property
+  toast.style.animationDuration = `0.3s, 0.3s`;
+  toast.style.animationDelay = `0s, ${(duration - 300) / 1000}s`;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), duration);
 }
@@ -379,7 +406,7 @@ function setupKeyboard() {
     btn.addEventListener('click', () => {
       const key = btn.getAttribute('data-key');
       if (!key) return;
-      if (gameOver) return;
+      if (gameOver || isRevealing) return;
 
       if (key === 'Enter') {
         submitGuess();
@@ -592,6 +619,81 @@ function loadHardMode() {
   if (saved === 'true') {
     hardMode = true;
     document.getElementById('hard-mode-btn').classList.add('active');
+  }
+}
+
+// ===== AUDIO =====
+
+function initAudio() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch (e) {
+    audioEnabled = false;
+  }
+}
+
+function playSound(type, index = 0) {
+  if (!audioCtx || !audioEnabled) return;
+  try {
+    const now = audioCtx.currentTime;
+    const gain = audioCtx.createGain();
+    gain.connect(audioCtx.destination);
+
+    if (type === 'type') {
+      // Soft click when typing a letter
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, now);
+      osc.frequency.exponentialRampToValueAtTime(600, now + 0.05);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.06);
+
+    } else if (type === 'flip') {
+      // Rising tone for each tile flip
+      const osc = audioCtx.createOscillator();
+      osc.type = 'triangle';
+      const baseFreq = 300 + (index * 80);
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.3, now + 0.1);
+      gain.gain.setValueAtTime(0.1, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.15);
+
+    } else if (type === 'error') {
+      // Low buzz for invalid guess
+      const osc = audioCtx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(150, now);
+      gain.gain.setValueAtTime(0.06, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.connect(gain);
+      osc.start(now);
+      osc.stop(now + 0.2);
+
+    } else if (type === 'win') {
+      // Victory fanfare — ascending chord
+      [523, 659, 784, 1047].forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const g = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.12);
+        g.gain.setValueAtTime(0, now);
+        g.gain.linearRampToValueAtTime(0.12, now + i * 0.12);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.4);
+        osc.connect(g);
+        g.connect(audioCtx.destination);
+        osc.start(now + i * 0.12);
+        osc.stop(now + i * 0.12 + 0.4);
+      });
+    }
+  } catch (e) {
+    // Silently fail — audio is non-essential
   }
 }
 
