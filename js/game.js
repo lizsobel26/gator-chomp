@@ -38,9 +38,11 @@ function init() {
   // Physical keyboard
   document.addEventListener('keydown', handleKeyPress);
 
-  // Init audio on first user interaction
-  document.addEventListener('click', initAudio, { once: true });
-  document.addEventListener('keydown', initAudio, { once: true });
+  // Init audio on first user interaction (touchstart needed for mobile)
+  const initEvents = ['click', 'keydown', 'touchstart'];
+  initEvents.forEach(evt => {
+    document.addEventListener(evt, initAudio, { once: true });
+  });
 }
 
 function createBoard() {
@@ -625,9 +627,15 @@ function loadHardMode() {
 // ===== AUDIO =====
 
 function initAudio() {
-  if (audioCtx) return;
+  if (audioCtx) {
+    // Already created — just make sure it's resumed (mobile can suspend it)
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return;
+  }
   try {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Mobile browsers start AudioContext in suspended state — must resume from user gesture
+    if (audioCtx.state === 'suspended') audioCtx.resume();
   } catch (e) {
     audioEnabled = false;
   }
@@ -635,6 +643,8 @@ function initAudio() {
 
 function playSound(type, index = 0) {
   if (!audioCtx || !audioEnabled) return;
+  // Ensure audio context is running (mobile Safari can re-suspend)
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   try {
     const now = audioCtx.currentTime;
     const gain = audioCtx.createGain();
