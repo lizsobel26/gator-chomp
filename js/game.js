@@ -148,6 +148,7 @@ function submitGuess() {
 
     const won = guess === targetWord;
     const lost = currentRow >= MAX_GUESSES - 1 && !won;
+    const guessNumber = currentRow + 1;
 
     if (won) {
       gameOver = true;
@@ -160,7 +161,7 @@ function submitGuess() {
         setTimeout(() => playSound('crowd'), 600);
       }, 400);
       setTimeout(() => {
-        recordWin(currentRow + 1);
+        recordWin(guessNumber);
         showStatsModal();
       }, 4500);
     } else if (lost) {
