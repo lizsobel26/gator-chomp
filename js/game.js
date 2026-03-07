@@ -151,6 +151,7 @@ function submitGuess() {
 
     if (won) {
       gameOver = true;
+      const guessCount = currentRow + 1; // Capture NOW before currentRow++
       bounceRow(currentRow);
       setTimeout(() => {
         playChompAnimation();
@@ -160,7 +161,7 @@ function submitGuess() {
         setTimeout(() => playSound('crowd'), 600);
       }, 400);
       setTimeout(() => {
-        recordWin(currentRow + 1);
+        recordWin(guessCount);
         showStatsModal();
       }, 4500);
     } else if (lost) {
