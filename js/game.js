@@ -38,10 +38,9 @@ function init() {
   // Physical keyboard
   document.addEventListener('keydown', handleKeyPress);
 
-  // Init audio on first user interaction (touchstart needed for mobile)
-  const initEvents = ['click', 'keydown', 'touchstart'];
-  initEvents.forEach(evt => {
-    document.addEventListener(evt, initAudio, { once: true });
+  // Init audio on every user interaction (iOS needs repeated resume attempts)
+  ['click', 'keydown', 'touchstart', 'touchend'].forEach(evt => {
+    document.addEventListener(evt, initAudio);
   });
 }
 
@@ -627,15 +626,23 @@ function loadHardMode() {
 // ===== AUDIO =====
 
 function initAudio() {
-  if (audioCtx) {
-    // Already created — just make sure it's resumed (mobile can suspend it)
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    return;
-  }
   try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // Mobile browsers start AudioContext in suspended state — must resume from user gesture
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    // iOS Safari: must resume from a user gesture, and can re-suspend anytime
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+    // iOS silent mode workaround: play a tiny silent buffer to unlock the audio session
+    if (!audioCtx._unlocked) {
+      const buf = audioCtx.createBuffer(1, 1, 22050);
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+      src.connect(audioCtx.destination);
+      src.start(0);
+      audioCtx._unlocked = true;
+    }
   } catch (e) {
     audioEnabled = false;
   }
@@ -643,7 +650,6 @@ function initAudio() {
 
 function playSound(type, index = 0) {
   if (!audioCtx || !audioEnabled) return;
-  // Ensure audio context is running (mobile Safari can re-suspend)
   if (audioCtx.state === 'suspended') audioCtx.resume();
   try {
     const now = audioCtx.currentTime;
@@ -651,40 +657,40 @@ function playSound(type, index = 0) {
     gain.connect(audioCtx.destination);
 
     if (type === 'type') {
-      // Soft click when typing a letter
+      // Click when typing a letter
       const osc = audioCtx.createOscillator();
       osc.type = 'sine';
       osc.frequency.setValueAtTime(880, now);
-      osc.frequency.exponentialRampToValueAtTime(600, now + 0.05);
-      gain.gain.setValueAtTime(0.08, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+      osc.frequency.exponentialRampToValueAtTime(600, now + 0.08);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
       osc.connect(gain);
       osc.start(now);
-      osc.stop(now + 0.06);
+      osc.stop(now + 0.1);
 
     } else if (type === 'flip') {
       // Rising tone for each tile flip
       const osc = audioCtx.createOscillator();
       osc.type = 'triangle';
-      const baseFreq = 300 + (index * 80);
+      const baseFreq = 400 + (index * 100);
       osc.frequency.setValueAtTime(baseFreq, now);
-      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.3, now + 0.1);
-      gain.gain.setValueAtTime(0.1, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.4, now + 0.15);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
       osc.connect(gain);
       osc.start(now);
-      osc.stop(now + 0.15);
+      osc.stop(now + 0.25);
 
     } else if (type === 'error') {
       // Low buzz for invalid guess
       const osc = audioCtx.createOscillator();
       osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(150, now);
-      gain.gain.setValueAtTime(0.06, now);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc.frequency.setValueAtTime(180, now);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
       osc.connect(gain);
       osc.start(now);
-      osc.stop(now + 0.2);
+      osc.stop(now + 0.3);
 
     } else if (type === 'win') {
       // Victory fanfare — ascending chord
@@ -692,14 +698,14 @@ function playSound(type, index = 0) {
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + i * 0.12);
+        osc.frequency.setValueAtTime(freq, now + i * 0.15);
         g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(0.12, now + i * 0.12);
-        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.4);
+        g.gain.linearRampToValueAtTime(0.35, now + i * 0.15);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.5);
         osc.connect(g);
         g.connect(audioCtx.destination);
-        osc.start(now + i * 0.12);
-        osc.stop(now + i * 0.12 + 0.4);
+        osc.start(now + i * 0.15);
+        osc.stop(now + i * 0.15 + 0.5);
       });
     }
   } catch (e) {
