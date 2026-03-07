@@ -274,13 +274,16 @@ body::before {
 }
 
 @keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-16px); }
-  60% { transform: translateY(-8px); }
+  0%, 100% { transform: translateY(0) scale(1); }
+  20% { transform: translateY(-24px) scale(1.1); }
+  40% { transform: translateY(0) scale(1); }
+  55% { transform: translateY(-12px) scale(1.05); }
+  70% { transform: translateY(0) scale(1); }
+  82% { transform: translateY(-5px); }
 }
 
 .tile.bounce {
-  animation: bounce 0.6s ease;
+  animation: bounce 0.8s ease;
 }
 
 /* -- Keyboard -- */
@@ -674,25 +677,33 @@ body::before {
 
 @keyframes jaw-top-chomp {
   0% { top: -140px; }
-  25% { top: calc(50% - 120px); }
-  35% { top: calc(50% - 60px); }
-  45% { top: calc(50% - 120px); }
-  55% { top: calc(50% - 60px); }
-  65% { top: calc(50% - 120px); }
-  75% { top: calc(50% - 60px); }
-  85% { top: calc(50% - 140px); }
+  15% { top: calc(50% - 130px); }
+  22% { top: calc(50% - 55px); }
+  30% { top: calc(50% - 130px); }
+  37% { top: calc(50% - 55px); }
+  44% { top: calc(50% - 130px); }
+  51% { top: calc(50% - 55px); }
+  58% { top: calc(50% - 130px); }
+  65% { top: calc(50% - 55px); }
+  72% { top: calc(50% - 130px); }
+  79% { top: calc(50% - 55px); }
+  88% { top: calc(50% - 150px); }
   100% { top: -160px; }
 }
 
 @keyframes jaw-bottom-chomp {
   0% { bottom: -140px; }
-  25% { bottom: calc(50% - 120px); }
-  35% { bottom: calc(50% - 60px); }
-  45% { bottom: calc(50% - 120px); }
-  55% { bottom: calc(50% - 60px); }
-  65% { bottom: calc(50% - 120px); }
-  75% { bottom: calc(50% - 60px); }
-  85% { bottom: calc(50% - 140px); }
+  15% { bottom: calc(50% - 130px); }
+  22% { bottom: calc(50% - 55px); }
+  30% { bottom: calc(50% - 130px); }
+  37% { bottom: calc(50% - 55px); }
+  44% { bottom: calc(50% - 130px); }
+  51% { bottom: calc(50% - 55px); }
+  58% { bottom: calc(50% - 130px); }
+  65% { bottom: calc(50% - 55px); }
+  72% { bottom: calc(50% - 130px); }
+  79% { bottom: calc(50% - 55px); }
+  88% { bottom: calc(50% - 150px); }
   100% { bottom: -160px; }
 }
 
@@ -715,10 +726,12 @@ body::before {
 }
 
 @keyframes chomp-text-show {
-  0%, 20% { opacity: 0; transform: scale(0.5); }
-  35% { opacity: 1; transform: scale(1.1); }
-  45% { transform: scale(1); }
-  80% { opacity: 1; }
+  0%, 12% { opacity: 0; transform: scale(0.5); }
+  20% { opacity: 1; transform: scale(1.15); }
+  26% { transform: scale(0.95); }
+  32% { transform: scale(1.08); }
+  38% { transform: scale(1); }
+  82% { opacity: 1; transform: scale(1); }
   100% { opacity: 0; transform: scale(0.8); }
 }
 

@@ -156,11 +156,13 @@ function submitGuess() {
         playChompAnimation();
         launchConfetti();
         playSound('win');
+        // Crowd roar starts after the fanfare
+        setTimeout(() => playSound('crowd'), 600);
       }, 400);
       setTimeout(() => {
         recordWin(currentRow + 1);
         showStatsModal();
-      }, 2400);
+      }, 4500);
     } else if (lost) {
       gameOver = true;
       setTimeout(() => {
@@ -326,13 +328,13 @@ function playChompAnimation() {
   // Trigger reflow
   void topJaw.offsetHeight;
 
-  topJaw.style.animation = 'jaw-top-chomp 1.8s ease-in-out forwards';
-  bottomJaw.style.animation = 'jaw-bottom-chomp 1.8s ease-in-out forwards';
-  text.style.animation = 'chomp-text-show 1.8s ease forwards';
+  topJaw.style.animation = 'jaw-top-chomp 3.5s ease-in-out forwards';
+  bottomJaw.style.animation = 'jaw-bottom-chomp 3.5s ease-in-out forwards';
+  text.style.animation = 'chomp-text-show 3.5s ease forwards';
 
   setTimeout(() => {
     overlay.classList.add('hidden');
-  }, 2200);
+  }, 4000);
 }
 
 // ===== CONFETTI =====
@@ -345,25 +347,25 @@ function launchConfetti() {
 
   const colors = ['#FA4616', '#0021A5', '#FF8C42', '#3366FF', '#FFFFFF', '#FFD700'];
   const particles = [];
-  const particleCount = 120;
+  const particleCount = 200;
 
   for (let i = 0; i < particleCount; i++) {
     particles.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height - canvas.height,
-      w: Math.random() * 10 + 5,
-      h: Math.random() * 6 + 3,
+      w: Math.random() * 12 + 5,
+      h: Math.random() * 8 + 3,
       color: colors[Math.floor(Math.random() * colors.length)],
-      vx: (Math.random() - 0.5) * 4,
-      vy: Math.random() * 3 + 2,
+      vx: (Math.random() - 0.5) * 6,
+      vy: Math.random() * 3 + 1.5,
       rotation: Math.random() * 360,
-      rotationSpeed: (Math.random() - 0.5) * 10,
+      rotationSpeed: (Math.random() - 0.5) * 12,
       opacity: 1,
     });
   }
 
   let frame = 0;
-  const maxFrames = 180;
+  const maxFrames = 300;
 
   function animate() {
     if (frame > maxFrames) {
@@ -693,20 +695,66 @@ function playSound(type, index = 0) {
       osc.stop(now + 0.3);
 
     } else if (type === 'win') {
-      // Victory fanfare — ascending chord
-      [523, 659, 784, 1047].forEach((freq, i) => {
+      // Victory fanfare — ascending chord with longer sustain
+      [523, 659, 784, 1047, 1319].forEach((freq, i) => {
         const osc = audioCtx.createOscillator();
         const g = audioCtx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + i * 0.15);
+        osc.frequency.setValueAtTime(freq, now + i * 0.18);
         g.gain.setValueAtTime(0, now);
-        g.gain.linearRampToValueAtTime(0.35, now + i * 0.15);
-        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.15 + 0.5);
+        g.gain.linearRampToValueAtTime(0.35, now + i * 0.18);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.7);
         osc.connect(g);
         g.connect(audioCtx.destination);
-        osc.start(now + i * 0.15);
-        osc.stop(now + i * 0.15 + 0.5);
+        osc.start(now + i * 0.18);
+        osc.stop(now + i * 0.18 + 0.7);
       });
+
+    } else if (type === 'crowd') {
+      // Crowd roar — layered noise bursts that swell and fade like a stadium
+      const duration = 2.5;
+      // White noise via buffer
+      const bufferSize = audioCtx.sampleRate * duration;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = noiseBuffer.getChannelData(0);
+      for (let j = 0; j < bufferSize; j++) {
+        data[j] = (Math.random() * 2 - 1);
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      // Bandpass filter to make it sound like a crowd, not static
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(800, now);
+      filter.Q.setValueAtTime(0.5, now);
+
+      // Swell up then fade out
+      const crowdGain = audioCtx.createGain();
+      crowdGain.gain.setValueAtTime(0.001, now);
+      crowdGain.gain.linearRampToValueAtTime(0.18, now + 0.5);
+      crowdGain.gain.setValueAtTime(0.18, now + 1.2);
+      crowdGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      noise.connect(filter);
+      filter.connect(crowdGain);
+      crowdGain.connect(audioCtx.destination);
+      noise.start(now);
+      noise.stop(now + duration);
+
+      // Add a low rumble underneath
+      const rumble = audioCtx.createOscillator();
+      rumble.type = 'sawtooth';
+      rumble.frequency.setValueAtTime(80, now);
+      const rumbleGain = audioCtx.createGain();
+      rumbleGain.gain.setValueAtTime(0.001, now);
+      rumbleGain.gain.linearRampToValueAtTime(0.08, now + 0.5);
+      rumbleGain.gain.setValueAtTime(0.08, now + 1.2);
+      rumbleGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+      rumble.connect(rumbleGain);
+      rumbleGain.connect(audioCtx.destination);
+      rumble.start(now);
+      rumble.stop(now + duration);
     }
   } catch (e) {
     // Silently fail — audio is non-essential
