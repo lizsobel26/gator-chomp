@@ -635,7 +635,7 @@ function initAudio() {
     }
     // iOS Safari: must resume from a user gesture, and can re-suspend anytime
     if (audioCtx.state === 'suspended') {
-      audioCtx.resume();
+      audioCtx.resume().catch(() => {});
     }
     // iOS silent mode workaround: play a tiny silent buffer to unlock the audio session
     if (!audioCtx._unlocked) {
@@ -646,8 +646,10 @@ function initAudio() {
       src.start(0);
       audioCtx._unlocked = true;
     }
+    // Re-enable audio on successful init (may have been disabled by a prior error)
+    audioEnabled = true;
   } catch (e) {
-    audioEnabled = false;
+    // Don't permanently disable — next interaction may succeed
   }
 }
 
