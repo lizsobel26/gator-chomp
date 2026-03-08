@@ -589,6 +589,22 @@ body::before {
   background: var(--gator-orange);
 }
 
+/* Secondary stats row */
+.stats-grid-secondary {
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.stats-grid-secondary .stat-number {
+  font-size: 22px;
+  color: var(--text-secondary);
+}
+
+.stats-grid-secondary .stat-label {
+  font-size: 10px;
+}
+
 /* Post-game buttons */
 #post-game-actions {
   display: flex;
@@ -628,6 +644,89 @@ body::before {
 .primary-btn:hover {
   background: var(--gator-orange-glow);
   border-color: var(--gator-orange-glow);
+}
+
+/* -- Give Up Button -- */
+#give-up-container {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  padding: 4px 0 2px;
+  flex-shrink: 0;
+}
+
+#give-up-container.hidden {
+  display: none;
+}
+
+.give-up-btn {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 6px 18px;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.give-up-btn:hover {
+  color: #e05555;
+  border-color: rgba(224,85,85,0.3);
+  background: rgba(224,85,85,0.08);
+}
+
+/* Give Up confirmation modal */
+.modal-compact {
+  max-width: 340px;
+  text-align: center;
+}
+
+.modal-compact h2 {
+  margin-bottom: 8px;
+}
+
+.give-up-message {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.give-up-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.danger-btn {
+  background: #c0392b;
+  border-color: #c0392b;
+  color: white;
+}
+
+.danger-btn:hover {
+  background: #e74c3c;
+  border-color: #e74c3c;
+}
+
+/* Revealed answer tiles (give up) */
+.tile.reveal-answer {
+  background: var(--absent-color);
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+  animation: reveal-pulse 0.4s ease;
+}
+
+@keyframes reveal-pulse {
+  0% { transform: scale(0.8); opacity: 0; }
+  60% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* -- Gator Chomp Win Animation -- */

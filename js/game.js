@@ -491,11 +491,29 @@ function setupModals() {
     document.getElementById('stats-modal').classList.add('hidden');
     startNewGame();
   });
+
+  // Give Up button -> show confirmation
+  document.getElementById('give-up-btn').addEventListener('click', () => {
+    if (gameOver || isRevealing) return;
+    document.getElementById('give-up-modal').classList.remove('hidden');
+  });
+
+  // Give Up modal - Cancel
+  document.getElementById('give-up-cancel').addEventListener('click', () => {
+    document.getElementById('give-up-modal').classList.add('hidden');
+  });
+
+  // Give Up modal - Confirm
+  document.getElementById('give-up-confirm').addEventListener('click', () => {
+    document.getElementById('give-up-modal').classList.add('hidden');
+    executeGiveUp();
+  });
 }
 
 function showStatsModal() {
   updateStatsDisplay();
   document.getElementById('post-game-actions').classList.toggle('hidden', !gameOver);
+  document.getElementById('give-up-container').classList.toggle('hidden', gameOver);
   document.getElementById('stats-modal').classList.remove('hidden');
 }
 
@@ -503,7 +521,14 @@ function showStatsModal() {
 
 function loadStats() {
   const saved = localStorage.getItem('gatorChomp_stats');
-  if (saved) return JSON.parse(saved);
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    // Migrate: add new fields for existing users
+    if (parsed.totalGuesses === undefined) parsed.totalGuesses = 0;
+    if (parsed.bestGuess === undefined) parsed.bestGuess = 0;
+    if (parsed.gaveUp === undefined) parsed.gaveUp = 0;
+    return parsed;
+  }
   return {
     played: 0,
     wins: 0,
@@ -511,6 +536,9 @@ function loadStats() {
     maxStreak: 0,
     distribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
     lastGuessCount: 0,
+    totalGuesses: 0,
+    bestGuess: 0,
+    gaveUp: 0,
   };
 }
 
@@ -525,6 +553,10 @@ function recordWin(guessCount) {
   stats.maxStreak = Math.max(stats.maxStreak, stats.currentStreak);
   stats.distribution[guessCount]++;
   stats.lastGuessCount = guessCount;
+  stats.totalGuesses += guessCount;
+  if (stats.bestGuess === 0 || guessCount < stats.bestGuess) {
+    stats.bestGuess = guessCount;
+  }
   saveStats();
 }
 
@@ -542,6 +574,14 @@ function updateStatsDisplay() {
     : 0;
   document.getElementById('stat-streak').textContent = stats.currentStreak;
   document.getElementById('stat-max-streak').textContent = stats.maxStreak;
+
+  // Enhanced stats
+  document.getElementById('stat-avg-guesses').textContent = stats.wins > 0
+    ? (stats.totalGuesses / stats.wins).toFixed(1)
+    : '\u2014';
+  document.getElementById('stat-best-guess').textContent = stats.bestGuess > 0 ? stats.bestGuess : '\u2014';
+  document.getElementById('stat-wins-count').textContent = stats.wins;
+  document.getElementById('stat-losses-count').textContent = stats.played - stats.wins;
 
   // Distribution bars
   const distEl = document.getElementById('guess-distribution');
@@ -614,6 +654,37 @@ function startNewGame() {
 
   // Pick new word
   pickNewWord();
+
+  // Show give-up button for new game
+  document.getElementById('give-up-container').classList.remove('hidden');
+}
+
+// ===== GIVE UP =====
+
+function executeGiveUp() {
+  gameOver = true;
+
+  // Hide the give-up button
+  document.getElementById('give-up-container').classList.add('hidden');
+
+  // Fill the current row with the answer and animate
+  for (let i = 0; i < WORD_LENGTH; i++) {
+    const tile = document.getElementById(`tile-${currentRow}-${i}`);
+    setTimeout(() => {
+      tile.textContent = targetWord[i];
+      tile.classList.add('filled', 'reveal-answer');
+    }, i * 80);
+  }
+
+  // Show toast with the answer
+  showToast(targetWord.toUpperCase(), 3000);
+
+  // Record as a loss
+  stats.gaveUp++;
+  recordLoss();
+
+  // Show stats modal after delay
+  setTimeout(() => showStatsModal(), 2000);
 }
 
 // ===== HARD MODE PERSISTENCE =====
@@ -766,3 +837,10 @@ function playSound(type, index = 0) {
 
 // ===== START =====
 document.addEventListener('DOMContentLoaded', init);
+
+// ===== SERVICE WORKER =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
