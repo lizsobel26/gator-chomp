@@ -1,13 +1,13 @@
 {
-  "name": "Gator Chomp",
-  "short_name": "GatorChomp",
-  "description": "A Gator-themed word guessing game. Guess the 5-letter word in 6 tries!",
+  "name": "Move Through It",
+  "short_name": "Move Through It",
+  "description": "Daily exercise best practices for women in menopause — fun, colorful, and science-friendly.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0d1117",
-  "theme_color": "#FA4616",
+  "background_color": "#FFF7EE",
+  "theme_color": "#FF6B6B",
   "icons": [
     {
       "src": "icons/icon-192.png",

@@ -1,16 +1,15 @@
-const CACHE_NAME = 'gator-chomp-v1';
+const CACHE_NAME = 'move-through-it-v1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './css/styles.css',
-  './js/game.js',
-  './js/words.js',
+  './js/site.js',
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
 ];
 
-// Install: pre-cache all game assets
+// Install: pre-cache site assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS_TO_CACHE))
